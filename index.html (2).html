@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sales Tracker</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f7f5;
+    --bg3: #f0efec;
+    --text: #1a1a18;
+    --text2: #6b6b67;
+    --text3: #a0a09c;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --blue-bg: #E6F1FB; --blue-text: #0C447C; --blue-border: #B5D4F4;
+    --green-bg: #EAF3DE; --green-text: #27500A; --green-border: #C0DD97;
+    --amber-bg: #FAEEDA; --amber-text: #633806; --amber-border: #FAC775;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0efe8; --text2: #a0a09c; --text3: #6b6b67;
+      --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+      --blue-bg: #0c2540; --blue-text: #93c5fd; --blue-border: #1e4a7c;
+      --green-bg: #0f2c08; --green-text: #86efac; --green-border: #1a5216;
+      --amber-bg: #2c1a04; --amber-text: #fcd34d; --amber-border: #7c4a0c;
+    }
+  }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+
+  /* Layout */
+  .page { max-width: 1200px; margin: 0 auto; padding: 24px 20px; }
+  .top-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; gap: 12px; flex-wrap: wrap; }
+  .brand { font-size: 20px; font-weight: 600; color: var(--text); }
+  .brand span { font-weight: 400; color: var(--text2); font-size: 16px; margin-left: 6px; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sep { width: 1px; height: 20px; background: var(--border2); }
+
+  /* Inputs */
+  input, select, textarea {
+    font-size: 13px; font-family: inherit; color: var(--text);
+    background: var(--bg); border: 0.5px solid var(--border2);
+    border-radius: var(--radius); padding: 8px 10px; outline: none;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: #378ADD; box-shadow: 0 0 0 3px rgba(55,138,221,0.15); }
+  select { cursor: pointer; }
+
+  /* Buttons */
+  .btn-primary { background: var(--text); color: var(--bg); border: none; border-radius: var(--radius); padding: 8px 16px; font-size: 13px; font-weight: 500; cursor: pointer; white-space: nowrap; font-family: inherit; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.82; }
+  .btn-ghost { background: none; color: var(--text2); border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 7px 12px; font-size: 13px; cursor: pointer; font-family: inherit; transition: background 0.15s; }
+  .btn-ghost:hover { background: var(--bg3); }
+  .btn-icon { background: none; border: none; cursor: pointer; color: var(--text3); font-size: 16px; padding: 4px 6px; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+  .btn-icon:hover { color: var(--text); background: var(--bg3); }
+  .btn-danger { color: #c0392b; }
+  .btn-danger:hover { background: #fef2f2; color: #c0392b; }
+
+  /* Sheet */
+  .sheet-wrap { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+  thead tr { background: var(--bg2); }
+  th { padding: 9px 12px; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text2); border-bottom: 0.5px solid var(--border); text-align: left; white-space: nowrap; }
+  th.i1 { background: var(--blue-bg); color: var(--blue-text); }
+  th.i2 { background: var(--green-bg); color: var(--green-text); }
+  th.i3 { background: var(--amber-bg); color: var(--amber-text); }
+  td { padding: 10px 12px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--bg2); }
+  .inv-cell { font-size: 12px; line-height: 1.7; min-width: 140px; }
+  .inv-cell .qb { display: inline-block; font-size: 11px; font-weight: 600; color: var(--blue-text); background: var(--blue-bg); border-radius: 4px; padding: 1px 5px; margin-right: 4px; }
+  .inv-cell .amt { font-weight: 600; }
+  .inv-cell .stage { color: var(--text2); display: block; }
+  .inv1-cell { border-left: 2px solid var(--blue-border); }
+  .inv2-cell { border-left: 2px solid var(--green-border); }
+  .inv3-cell { border-left: 2px solid var(--amber-border); }
+  .agg-badge { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--bg2); color: var(--text2); white-space: nowrap; display: inline-block; border: 0.5px solid var(--border); }
+  .row-del { opacity: 0; transition: opacity 0.15s; }
+  tr:hover .row-del { opacity: 1; }
+  .empty-row td { text-align: center; color: var(--text3); padding: 2.5rem; font-size: 13px; }
+
+  /* Modal */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 200; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--bg); border-radius: var(--radius-lg); border: 0.5px solid var(--border2); padding: 24px; width: 560px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .modal-sub { font-size: 13px; color: var(--text2); margin-bottom: 18px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; padding-top: 14px; border-top: 0.5px solid var(--border); }
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 4px; letter-spacing: 0.04em; text-transform: uppercase; font-weight: 500; }
+  .field input, .field select, .field textarea { width: 100%; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+  /* Invoice sections */
+  .inv-block { border: 0.5px solid var(--border2); border-radius: var(--radius); padding: 12px; margin-bottom: 10px; }
+  .inv-block-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .inv-tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; }
+  .it1 { background: var(--blue-bg); color: var(--blue-text); }
+  .it2 { background: var(--green-bg); color: var(--green-text); }
+  .it3 { background: var(--amber-bg); color: var(--amber-text); }
+  .amt-wrap { display: flex; }
+  .amt-wrap .pre { font-size: 13px; color: var(--text2); padding: 0 8px; background: var(--bg2); border: 0.5px solid var(--border2); border-right: none; border-radius: var(--radius) 0 0 var(--radius); height: 36px; display: flex; align-items: center; white-space: nowrap; }
+  .amt-wrap input { border-radius: 0 var(--radius) var(--radius) 0 !important; flex: 1; }
+
+  /* Agg manager */
+  .agg-card { border: 0.5px solid var(--border); border-radius: var(--radius); margin-bottom: 12px; overflow: hidden; }
+  .agg-card-head { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: var(--bg2); border-bottom: 0.5px solid var(--border); }
+  .agg-card-head input { flex: 1; background: transparent; border: none; font-size: 14px; font-weight: 600; color: var(--text); padding: 0; box-shadow: none; }
+  .agg-card-head input:focus { border-bottom: 1px solid var(--border2); box-shadow: none; }
+  .agg-presets { padding: 10px 12px; }
+  .preset-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .preset-row:last-child { margin-bottom: 0; }
+  .preset-hint { font-size: 11px; color: var(--text3); padding: 4px 12px 10px; }
+
+  /* Flash */
+  .flash { animation: fl 0.5s ease; }
+  @keyframes fl { 0%,100%{background:transparent} 50%{background:#d1fae5} }
+  .af { animation: afl 0.6s ease; }
+  @keyframes afl { 0%,100%{background:transparent} 50%{background:#dbeafe} }
+
+  /* Saved indicator */
+  .save-toast { position: fixed; bottom: 20px; right: 20px; background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 999; }
+  .save-toast.show { opacity: 1; }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .grid2 { grid-template-columns: 1fr; }
+    .grid3 { grid-template-columns: 1fr; }
+    .preset-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="top-bar">
+    <div class="brand">Sales Tracker <span id="period-display">January 2026 · Sydney</span></div>
+    <div class="controls">
+      <select id="month-sel" onchange="updatePeriod()">
+        <option>January</option><option>February</option><option>March</option>
+        <option>April</option><option>May</option><option>June</option>
+        <option>July</option><option>August</option><option>September</option>
+        <option>October</option><option>November</option><option>December</option>
+      </select>
+      <select id="year-sel" onchange="updatePeriod()">
+        <option>2025</option><option selected>2026</option><option>2027</option><option>2028</option>
+      </select>
+      <div class="sep"></div>
+      <select id="office-sel" onchange="updatePeriod()">
+        <option>Sydney</option><option>Melbourne</option>
+      </select>
+      <div class="sep"></div>
+      <button class="btn-ghost" onclick="openAggModal()" title="Manage aggregators">&#9776; Aggregators</button>
+      <button class="btn-primary" onclick="openDealModal()">+ Add deal</button>
+    </div>
+  </div>
+
+  <div class="sheet-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Advisor</th>
+          <th>Client name</th>
+          <th>Property address</th>
+          <th>Aggregator</th>
+          <th class="i1">Invoice 1</th>
+          <th class="i2">Invoice 2</th>
+          <th class="i3">Invoice 3</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="deal-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Deal modal -->
+<div class="modal-overlay" id="deal-modal" onclick="if(event.target===this)closeDealModal()">
+  <div class="modal">
+    <h3>Add deal</h3>
+    <div class="grid2">
+      <div class="field">
+        <label>Advisor</label>
+        <input type="text" id="f-advisor" placeholder="e.g. Eren" />
+      </div>
+      <div class="field">
+        <label>Aggregator</label>
+        <select id="f-agg" onchange="applyPresets()"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Client name</label>
+      <input type="text" id="f-client" placeholder="e.g. Warren David Talbot & Linda Ann Talbot" />
+    </div>
+    <div class="field">
+      <label>Property address</label>
+      <input type="text" id="f-address" placeholder="e.g. Lot 127 Thimble Way FRASER RISE VIC" />
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px;">
+      <span style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text2);">Invoices</span>
+      <button class="btn-ghost" id="add-inv-btn" onclick="addInvBlock()" style="font-size:12px;padding:5px 10px;display:none;">+ Add invoice</button>
+    </div>
+    <div id="inv-blocks"></div>
+    <div class="field" style="margin-top:6px;">
+      <label>Notes</label>
+      <input type="text" id="f-notes" placeholder="Optional" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" onclick="closeDealModal()">Cancel</button>
+      <button class="btn-primary" onclick="saveDeal()">Log deal</button>
+    </div>
+  </div>
+</div>
+
+<!-- Aggregator modal -->
+<div class="modal-overlay" id="agg-modal" onclick="if(event.target===this)closeAggModal()">
+  <div class="modal">
+    <h3>Manage aggregators</h3>
+    <p class="modal-sub">Set default invoice stage and amount per aggregator — auto-fills when selected on a deal.</p>
+    <div id="agg-list"></div>
+    <button class="btn-ghost" onclick="addAgg()" style="margin-top:6px;font-size:13px;">+ Add aggregator</button>
+    <div class="modal-actions">
+      <button class="btn-primary" onclick="closeAggModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<div class="save-toast" id="save-toast">Saved</div>
+
+<script>
+const STAGES = ["5% build deposit","Settlement","Slab","Frame","Enclosed","Lockup","Fixing","Completion"];
+const INV_LABELS = ["Invoice 1","Invoice 2","Invoice 3"];
+const INV_TAGS = ["it1","it2","it3"];
+const INV_BORDERS = ["inv1-cell","inv2-cell","inv3-cell"];
+const STORAGE_DEALS = "st_deals_v1";
+const STORAGE_AGGS  = "st_aggs_v1";
+
+let deals = [];
+let aggregators = [
+  {name:"Aldrich Homes", presets:[{stage:"5% build deposit",amount:""},{stage:"Lockup",amount:""},{stage:"Completion",amount:""}]},
+  {name:"Lendi",         presets:[{stage:"",amount:""},{stage:"",amount:""},{stage:"",amount:""}]},
+  {name:"Aussie",        presets:[{stage:"",amount:""},{stage:"",amount:""},{stage:"",amount:""}]},
+  {name:"Mortgage Choice",presets:[{stage:"",amount:""},{stage:"",amount:""},{stage:"",amount:""}]},
+];
+
+let invCount = 0;
+let invIds = [];
+
+/* ── Persistence ── */
+function save() {
+  try {
+    localStorage.setItem(STORAGE_DEALS, JSON.stringify(deals));
+    localStorage.setItem(STORAGE_AGGS,  JSON.stringify(aggregators));
+    flashToast();
+  } catch(e) {}
+}
+
+function load() {
+  try {
+    const d = localStorage.getItem(STORAGE_DEALS);
+    const a = localStorage.getItem(STORAGE_AGGS);
+    if (d) deals = JSON.parse(d);
+    if (a) aggregators = JSON.parse(a);
+  } catch(e) {}
+}
+
+let toastTimer;
+function flashToast() {
+  const t = document.getElementById('save-toast');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1500);
+}
+
+/* ── Period ── */
+function getPeriodKey() {
+  return [
+    document.getElementById('month-sel').value,
+    document.getElementById('year-sel').value,
+    document.getElementById('office-sel').value
+  ].join('|');
+}
+
+function updatePeriod() {
+  const m = document.getElementById('month-sel').value;
+  const y = document.getElementById('year-sel').value;
+  const o = document.getElementById('office-sel').value;
+  document.getElementById('period-display').textContent = m + ' ' + y + ' · ' + o;
+  renderDeals();
+}
+
+/* ── Aggregator select ── */
+function refreshAggSelect() {
+  const sel = document.getElementById('f-agg');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— select —</option>' +
+    aggregators.map(a => `<option>${esc(a.name)}</option>`).join('');
+  if (aggregators.find(a => a.name === cur)) sel.value = cur;
+}
+
+function applyPresets() {
+  const name = document.getElementById('f-agg').value;
+  const agg = aggregators.find(a => a.name === name);
+  invIds = []; invCount = 0;
+  document.getElementById('inv-blocks').innerHTML = '';
+  document.getElementById('add-inv-btn').style.display = 'none';
+  if (!agg) { addInvBlock(); return; }
+  const active = agg.presets.filter(p => p.stage || p.amount);
+  const count = active.length > 0 ? active.length : 1;
+  for (let i = 0; i < count; i++) addInvBlock();
+  invIds.forEach((id, i) => {
+    const p = agg.presets[i];
+    if (!p) return;
+    if (p.stage) { const s = document.getElementById(id + '_stage'); if (s) s.value = p.stage; }
+    if (p.amount) {
+      const inp = document.getElementById(id + '_amount');
+      if (inp) { inp.value = p.amount; inp.classList.add('af'); setTimeout(() => inp.classList.remove('af'), 700); }
+    }
+  });
+}
+
+/* ── Invoice blocks ── */
+function stageOpts(sel) {
+  return '<option value="">— stage —</option>' +
+    STAGES.map(s => `<option${s === sel ? ' selected' : ''}>${s}</option>`).join('');
+}
+
+function addInvBlock() {
+  if (invIds.length >= 3) return;
+  const n = invIds.length;
+  const id = 'inv_' + (++invCount);
+  invIds.push(id);
+  const div = document.createElement('div');
+  div.className = 'inv-block'; div.id = id;
+  div.innerHTML = `
+    <div class="inv-block-head">
+      <span class="inv-tag ${INV_TAGS[n]}">${INV_LABELS[n]}</span>
+      ${n > 0 ? `<button class="btn-ghost" style="font-size:12px;padding:3px 8px;" onclick="removeInvBlock('${id}')">&#x2715;</button>` : ''}
+    </div>
+    <div class="grid2" style="margin-bottom:10px;">
+      <div class="field" style="margin-bottom:0;">
+        <label>QuickBooks invoice #</label>
+        <input type="text" id="${id}_qb" placeholder="e.g. 3374" />
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>Stage</label>
+        <select id="${id}_stage">${stageOpts('')}</select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label>Invoice amount ($)</label>
+      <div class="amt-wrap"><span class="pre">$</span><input type="number" id="${id}_amount" placeholder="0.00" step="0.01" min="0" /></div>
+    </div>
+  `;
+  document.getElementById('inv-blocks').appendChild(div);
+  document.getElementById('add-inv-btn').style.display = invIds.length < 3 ? 'inline-block' : 'none';
+}
+
+function removeInvBlock(id) {
+  invIds = invIds.filter(i => i !== id);
+  document.getElementById(id).remove();
+  document.getElementById('add-inv-btn').style.display = invIds.length < 3 ? 'inline-block' : 'none';
+}
+
+/* ── Deal modal ── */
+function openDealModal() {
+  invIds = []; invCount = 0;
+  document.getElementById('inv-blocks').innerHTML = '';
+  document.getElementById('add-inv-btn').style.display = 'none';
+  ['f-advisor','f-client','f-address','f-notes'].forEach(id => document.getElementById(id).value = '');
+  refreshAggSelect();
+  document.getElementById('f-agg').value = '';
+  addInvBlock();
+  document.getElementById('deal-modal').classList.add('open');
+  setTimeout(() => document.getElementById('f-advisor').focus(), 60);
+}
+
+function closeDealModal() {
+  document.getElementById('deal-modal').classList.remove('open');
+}
+
+function saveDeal() {
+  const client = document.getElementById('f-client').value.trim();
+  const address = document.getElementById('f-address').value.trim();
+  if (!client) { alert('Please enter a client name.'); return; }
+  if (!address) { alert('Please enter a property address.'); return; }
+  deals.push({
+    period: getPeriodKey(),
+    advisor: document.getElementById('f-advisor').value.trim(),
+    agg: document.getElementById('f-agg').value,
+    client, address,
+    invoices: invIds.map(id => ({
+      qb:     document.getElementById(id + '_qb').value.trim(),
+      stage:  document.getElementById(id + '_stage').value,
+      amount: parseFloat(document.getElementById(id + '_amount').value) || 0,
+    })),
+    notes: document.getElementById('f-notes').value.trim(),
+  });
+  save();
+  closeDealModal();
+  renderDeals();
+}
+
+/* ── Aggregator modal ── */
+function openAggModal() {
+  renderAggList();
+  document.getElementById('agg-modal').classList.add('open');
+}
+
+function closeAggModal() {
+  aggregators = aggregators.filter(a => a.name.trim() !== '');
+  save();
+  refreshAggSelect();
+  document.getElementById('agg-modal').classList.remove('open');
+}
+
+function renderAggList() {
+  const list = document.getElementById('agg-list');
+  list.innerHTML = '';
+  aggregators.forEach((agg, i) => {
+    const card = document.createElement('div');
+    card.className = 'agg-card';
+    card.innerHTML = `
+      <div class="agg-card-head">
+        <input type="text" value="${esc(agg.name)}" placeholder="Aggregator name"
+          oninput="aggregators[${i}].name=this.value; refreshAggSelect();" />
+        <button class="btn-icon btn-danger" onclick="removeAgg(${i})" title="Remove">&#x1F5D1;</button>
+      </div>
+      <div class="agg-presets">
+        ${[0,1,2].map(n => `
+          <div class="preset-row">
+            <span class="inv-tag ${INV_TAGS[n]}" style="min-width:66px;text-align:center;">${INV_LABELS[n]}</span>
+            <select style="flex:1.4;" onchange="aggregators[${i}].presets[${n}].stage=this.value">
+              ${stageOpts(agg.presets[n]?.stage || '')}
+            </select>
+            <div class="amt-wrap" style="flex:1;">
+              <span class="pre">$</span>
+              <input type="number" value="${agg.presets[n]?.amount || ''}" placeholder="0.00" step="0.01" min="0"
+                oninput="aggregators[${i}].presets[${n}].amount=this.value" />
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      <p class="preset-hint">Leave blank to fill in manually per deal.</p>
+    `;
+    list.appendChild(card);
+  });
+}
+
+function addAgg() {
+  aggregators.push({ name: '', presets: [{stage:'',amount:''},{stage:'',amount:''},{stage:'',amount:''}] });
+  renderAggList();
+  refreshAggSelect();
+  const inputs = document.querySelectorAll('.agg-card-head input');
+  if (inputs.length) inputs[inputs.length - 1].focus();
+}
+
+function removeAgg(i) {
+  if (!confirm('Remove this aggregator?')) return;
+  aggregators.splice(i, 1);
+  renderAggList();
+  refreshAggSelect();
+}
+
+/* ── Render deals ── */
+function fmt(n) {
+  if (!n && n !== 0) return '';
+  return '$' + parseFloat(n).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function removeDeal(i) {
+  if (!confirm('Remove this deal?')) return;
+  deals.splice(i, 1);
+  save();
+  renderDeals();
+}
+
+function renderDeals() {
+  const tbody = document.getElementById('deal-tbody');
+  const key = getPeriodKey();
+  const filtered = deals.map((d, i) => ({ d, i })).filter(({ d }) => d.period === key);
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No deals logged yet for this period — click "Add deal" to get started.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = '';
+  filtered.forEach(({ d, i }, fi) => {
+    const tr = document.createElement('tr');
+    if (fi === filtered.length - 1) tr.classList.add('flash');
+
+    const invCells = [0, 1, 2].map(n => {
+      const inv = d.invoices[n];
+      if (!inv) return `<td class="${INV_BORDERS[n]}"></td>`;
+      const qbPart    = inv.qb    ? `<span class="qb">#${esc(inv.qb)}</span>` : '';
+      const amtPart   = inv.amount ? `<span class="amt">${fmt(inv.amount)}</span>` : '';
+      const stagePart = inv.stage  ? `<span class="stage">${esc(inv.stage)}</span>` : '';
+      return `<td class="inv-cell ${INV_BORDERS[n]}">${qbPart}${amtPart}${stagePart}</td>`;
+    }).join('');
+
+    tr.innerHTML = `
+      <td>${esc(d.advisor || '—')}</td>
+      <td style="font-weight:600;max-width:190px;">${esc(d.client)}</td>
+      <td style="color:var(--text2);max-width:170px;word-break:break-word;">${esc(d.address)}</td>
+      <td><span class="agg-badge">${esc(d.agg || '—')}</span></td>
+      ${invCells}
+      <td style="color:var(--text2);font-size:12px;max-width:130px;">${esc(d.notes || '')}</td>
+      <td><button class="btn-icon btn-danger row-del" onclick="removeDeal(${i})" title="Remove deal">&#x1F5D1;</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+/* ── Init ── */
+load();
+refreshAggSelect();
+renderDeals();
+</script>
+</body>
+</html>
